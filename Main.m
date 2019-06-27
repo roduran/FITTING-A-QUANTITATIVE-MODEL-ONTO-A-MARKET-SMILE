@@ -396,3 +396,194 @@ legend('1M','2M','3M','6M','1Y');
 xlabel('Pilares')
 ylabel('Volatilidad')
 title('Dia 1')
+
+
+%% Step 9 [Derivados Avanzados] [Rodrigo Duran]
+
+% Parametros Iniciales
+%omega0=0.9404;
+%eta0=0.1674;
+% Parametros Calibrados 200 it
+omega0=-20.5799;
+eta0=0.0143;
+%%
+%Parametros promedio 2663 dias
+eta0=0.0906;
+omega0=-12.3647;
+%%
+%Parametros calibracion final
+eta0=0.1271;
+omega0=-4.6241;
+%%
+omega0=0.9404;
+eta0=0.1674;
+tic
+% Datos a Calibrar
+for i=2663:2663
+    x=[omega0 eta0];
+% Funcion Optimizacion
+    options=optimset('MaxFunEvals',200);
+    fun=@(x)Min_Error(x,i);
+    [Estimadores,error]=fminsearch(fun,x,options);
+% Limites superior e inferior
+%    if Estimadores(1)<-12.3647   % Inferior OMEGA
+%        Estimadores(1)=-12.3647;
+%    elseif Estimadores(1)>-12.3647  %Superior OMEGA
+%        Estimadores(1)=-12.3647;
+%    end
+%    if Estimadores(2)<0.0906   % Inferior ETA
+%        Estimadores(2)=0.0906;
+%    elseif Estimadores(2)>0.0906  %Superior ETA
+%        Estimadores(2)=0.0906;
+%    end
+% Asignacion Matriz
+    Parametros(i,1) = Estimadores(1);
+    Parametros(i,2) = Estimadores(2);
+    Parametros(i,3) = error;
+% Actualizacion Valores
+    omega0=Estimadores(1);
+    eta0=Estimadores(2);
+end
+toc
+%% Plots parametros
+
+fecha = {'Jan 2 2008'; 'Dec 5 2008'; '10 Nov 2009'; '14 Oct 2010'; '19 Sep 2011';'22 Aug 2012'; '26 Jul 2013'; '7 Jan 2014'; '4 Jun 2015';'9 May 2016';'12 April 2017';'16 Mar 2018'};
+%fecha = {'Jan 2'; 'Mar 12'; '21 May'; '30 July'};
+figure(1)
+plot(Parametros(:,1), 'r');
+set(gca,'xtick',1:242:2663,'xticklabel',fecha);
+%set(gca,'xtick',1:50:200,'xticklabel',fecha);
+legend('Omega','Location','southeast');
+xlabel('Tiempo')
+ylabel('Valor Omega')
+title('Comportamiento Omega')
+
+figure(2)
+plot(Parametros(:,2));
+set(gca,'xtick',1:242:2663,'xticklabel',fecha);
+%set(gca,'xtick',1:50:200,'xticklabel',fecha);
+legend('Eta');
+xlabel('Tiempo')
+ylabel('Valor Eta')
+title('Comportamiento Eta')
+
+%fecha = {'17 Oct 2013'; '14 July 2014'; '8 April 2015';'1 Jan 2016';'27 Sep 2016';'22 June 2017'};
+x=ones(1,2663)*5;
+y=ones(1,1148);
+figure(3)
+plot(Parametros(1:2663,3)*100,'black');
+hold on
+plot(x, '--red')
+%plot(y,'--blue')
+legend('Error', 'Error 5% cte', 'Error 1% cte');
+xlabel('Tiempo')
+ylabel('Error Volatilidad (%)')
+set(gca,'xtick',1:242:2663,'xticklabel',fecha);
+%set(gca,'xtick',1:192:1148,'xticklabel',fecha);
+title('Error entre Mercado y Modelo')
+
+
+%% Promedios
+
+Omega_promedio=mean(Parametros(1515:2663,1));
+Omega_std=std(Parametros(:,1));
+
+Eta_promedio=mean(Parametros(1515:2663,2));
+Eta_std=std(Parametros(:,2));
+
+error_promedio=mean(Parametros(:,3));
+error_std=std(Parametros(:,3));
+%% Promedios sin crisis
+omega_mean=((39/2265)*-28.8691)+((81/2265)*-9.4096)+((129/2265)*-5.9422)+((405/2265)*-22.3558)+((1611/2265)*-10.6726);
+eta_mean=((39/2265)*0.0101)+((81/2265)*0.0649)+((129/2265)*0.0788)+((405/2265)*0.0314)+((1611/2265)*0.0961);
+%% Optimizacion SIN CRISIS
+eta0=0.0809;
+omega0=-12.7604;
+H=[1:39 113:194 416:545 567:973 1051:2663];
+tic
+% Datos a Calibrar
+for i=H
+    x=[omega0 eta0];
+% Funcion Optimizacion
+    options=optimset('MaxFunEvals',10);
+    fun=@(x)Min_Error(x,i);
+    [Estimadores,error]=fminsearch(fun,x,options);
+% Limites superior e inferior
+    if Estimadores(1)<-12.3647   % Inferior OMEGA
+        Estimadores(1)=-12.3647;
+    elseif Estimadores(1)>-12.3647  %Superior OMEGA
+        Estimadores(1)=-12.3647;
+    end
+    if Estimadores(2)<0.0906   % Inferior ETA
+        Estimadores(2)=0.0906;
+    elseif Estimadores(2)>0.0906  %Superior ETA
+        Estimadores(2)=0.0906;
+    end
+% Asignacion Matriz
+    Parametros(i,1) = Estimadores(1);
+    Parametros(i,2) = Estimadores(2);
+    Parametros(i,3) = error;
+% Actualizacion Valores
+    %omega0=Estimadores(1);
+    %eta0=Estimadores(2);
+end
+toc
+
+%% The Model Calibration
+% Ultima Smile
+
+N=100;
+z=3;
+dtau=1/365;
+spotbarra=600;
+eta=0.1271;
+omega=-4.6241;
+
+tenor=1;
+e=1;
+
+volM=[8.718	8.329	8.823	10.047	12.208]/100;    %check
+spot=608.21;                                        %check
+strike=[685.72	647.92	611.86	570.41	517.67];    %check
+rateclp=-log(0.973354)/(365/365);                   %check
+rateusd=-log(0.977802996432153)/(365/365);          %check
+
+vol=0.1;
+
+ValorObjetivo=zeros(1,5);
+for i=1:5
+    [ valor_cn_dd ] = CrankNicolson_DD( spot, strike(i), rateclp, rateusd, vol, tenor, z, N, dtau, eta, omega, spotbarra );
+    ValorObjetivo(1,i)=valor_cn_dd;
+end
+% NEWTON-RAPHSON
+y=zeros(1,5);
+for j=1:5
+    sigma=vol;
+    for i= 1:N
+        [ ValorBS, VegaBS ] = Pr1(strike(1,j), tenor, spot, rateclp, rateusd, sigma, e);
+        [ sigma ] = nr( sigma, ValorObjetivo(1,j), ValorBS, VegaBS );
+    end
+
+    y(1,j)= sigma;
+end
+display (y)
+
+%% Ultima Smile
+
+
+Volmodelo= y;
+Volmodelo200it=[0.0669    0.0778    0.0882    0.1005    0.1165];
+Volmercado=[8.718	8.329	8.823	10.047	12.208]/100;
+
+
+pilares = {'10P'; '25P'; 'ATM'; '25C'; '10C'};
+plot(Volmercado)
+hold on
+plot(Volmodelo200it)
+plot(Volmodelo)
+set(gca,'xtick',1:5,'xticklabel',pilares);
+ylim([0.06 0.18])
+legend('Vol mercado','Vol modelo 200 it', 'Vol modelo parametros ctes');
+xlabel('Pilares')
+ylabel('Volatilidad')
+title('Smiles')
